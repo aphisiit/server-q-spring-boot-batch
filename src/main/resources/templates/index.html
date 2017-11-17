@@ -1,0 +1,414 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Test Print Quence</title>
+
+    <script type="text/javascript" src="webjars/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript" src="webjars/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="webjars/bootstrap/3.3.7/js/button.js"></script>
+    <!--<script type="text/javascript" th:src="@{../static/fullcalendar.moment.min.js}"></script>-->
+    <!--<script type="text/javascript" th:src="@{../static/fullcalendar.js}"></script>-->
+    <!--<script type="text/javascript" th:src="@{../static/pagingUtil.js}"></script>-->
+
+
+    <link rel="stylesheet" href="webjars/bootstrap/3.3.7/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="webjars/bootstrap/3.3.7/css/bootstrap-theme.min.css" />
+
+    <style type="text/css">
+        /*.th .td{*/
+            /*text-align: center;*/
+        /*}*/
+    </style>
+
+
+</head>
+<body style="font-family: 'Yu Gothic UI Light'">
+
+    <nav class="navbar navbar-inverse" style="border-radius: 0px;">
+        <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">Brand</a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <!--<ul class="nav navbar-nav">-->
+                    <!--<li class="active"><a href="#">Link <span class="sr-only">(current)</span></a></li>-->
+                    <!--<li><a href="#">Link</a></li>-->
+                    <!--<li class="dropdown">-->
+                        <!--<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Dropdown <span class="caret"></span></a>-->
+                        <!--<ul class="dropdown-menu">-->
+                            <!--<li><a href="#">Action</a></li>-->
+                            <!--<li><a href="#">Another action</a></li>-->
+                            <!--<li><a href="#">Something else here</a></li>-->
+                            <!--<li role="separator" class="divider"></li>-->
+                            <!--<li><a href="#">Separated link</a></li>-->
+                            <!--<li role="separator" class="divider"></li>-->
+                            <!--<li><a href="#">One more separated link</a></li>-->
+                        <!--</ul>-->
+                    <!--</li>-->
+                <!--</ul>-->
+                <!--<form class="navbar-form navbar-left">-->
+                    <!--<div class="form-group">-->
+                        <!--<input type="text" class="form-control" placeholder="Search"/>-->
+                    <!--</div>-->
+                    <!--<button type="submit" class="btn btn-default">Submit</button>-->
+                <!--</form>-->
+                <ul class="nav navbar-nav navbar-right">
+                    <li style="cursor: pointer;"><a id="btn_viewQueue" style="cursor: pointer;">View Queue</a></li>
+                    <li style="cursor: pointer;"><a id="btn_checkQueue" style="cursor: pointer;">Check Queue</a></li>
+
+                    <!--<li class="dropdown">-->
+                        <!--<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Dropdown <span class="caret"></span></a>-->
+                        <!--<ul class="dropdown-menu">-->
+                            <!--<li><a href="#">Action</a></li>-->
+                            <!--<li><a href="#">Another action</a></li>-->
+                            <!--<li><a href="#">Something else here</a></li>-->
+                            <!--<li role="separator" class="divider"></li>-->
+                            <!--<li><a href="#">Separated link</a></li>-->
+                        <!--</ul>-->
+                    <!--</li>-->
+                </ul>
+            </div><!-- /.navbar-collapse -->
+        </div><!-- /.container-fluid -->
+    </nav>
+
+    <div class="container container-fluid">
+        <div class="page-header">
+            <h1>Welcome to queue printer</h1>
+        </div>
+
+        <div class="text-center">
+            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+                <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8">
+                    <input id="input_country" class="form-control" placeholder="Enter country " type="text"/>
+                </div>
+                <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4">
+                    <input class="btn btn-success" style="width: 100%" type="button" value="Search" id="button_search_country" />
+                </div>
+            </div>
+            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12" id="content" style="padding-top: 20px">
+                <!-- Content -->
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="qModal" role="dialog">
+        <div class="modal-dialog modal-sm modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h2 class="modal-title text-center" id="modalHeader">Queue waiting</h2>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center" id="modalTable"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+            $('#qModal').on('hidden.bs.modal', function () {
+                $('#modalHeader').empty();
+                $('#modalTable').empty();
+            })
+
+            $('#btn_checkQueue').click(function () {
+                $('#modalHeader').empty();
+                $('#modalHeader').append('Queue waiting');
+
+                $.ajax({
+                    type : 'GET',
+                    url : window.location.origin + "/reportQ/getQueueNow",
+                    contentType : "applicaton/json; charset=UTF-8",
+                    async : false,
+                    complete : function (xhr) {
+                        if(xhr.statusCode(200)){
+                            let data = xhr.responseText;
+                            let item = JSON.parse(data);
+
+                            $('#modalTable').empty();
+                            if(item.length > 0){
+
+                                let table = '';
+                                table += '<table class="table table-bordered table-responsive">' +
+                                    '<tr>' +
+                                    '<th class="text-center">ID</th>' +
+                                    '<th class="text-center">Report Name</th>' +
+                                    '<th class="text-center">Status</th>' +
+                                    '<th class="text-center">Criteria String</th>' +
+                                    '<th class="text-center">created Date</th>' +
+                                    '</tr>';
+
+                                let date;
+                                let year;
+                                let month;
+                                let day;
+                                let hours;
+                                let minute;
+                                let secound;
+                                let convert_date;
+
+                                    for(let i = 0; i != item.length ; i++){
+                                    date = new Date(item[i].createdDate);
+                                    year = date.getFullYear();
+                                    month = date.getMonth() + 1;
+                                    day = date.getDate();
+                                    hours = date.getHours();
+                                    minute = date.getMinutes();
+                                    secound = date.getSeconds();
+
+                                    if(month < 10) month = '0' + month;
+                                    if(day < 10) day = '0' + day;
+                                    if(hours < 10) hours = '0' + hours;
+                                    if(minute < 10) minute = '0' + minute;
+                                    if(secound < 10) secound = '0' + secound;
+
+                                        convert_date = year + '-' + month + '-' + day + ' ' + hours + ':' + minute + ':' + secound;
+
+
+                                    table += '' +
+                                        '<tr>' +
+                                        '<td>' + (i+1) + '</td>' +
+                                        '<td>' + item[i].reportName + '</td>' +
+                                        '<td>' + item[i].status + '</td>' +
+                                        '<td>' + item[i].criteriaString + '</td>' +
+                                        '<td>' + convert_date + '</td>' +
+                                        '</tr>';
+                                }
+
+                                table += '</table>';
+                                $('#modalTable').append(table);
+                                $('#qModal').modal('show');
+
+
+                            }else{
+                                $('#modalTable').append('<h3 class="text-center" style="color: orangered;">No Queue for now.</h3>');
+                                $('#qModal').modal('show');
+                            }
+                        }
+                    }
+                });
+            });
+
+            $('#btn_viewQueue').click(function () {
+                $('#modalHeader').empty();
+                $('#modalHeader').append('Finish Queue');
+
+
+                $.ajax({
+                    type : 'GET',
+                    url : window.location.origin + "/reportQ/viewQueue",
+                    contentType : "applicaton/json; charset=UTF-8",
+                    async : false,
+                    complete : function (xhr) {
+                        if(xhr.statusCode(200)){
+                            let data = xhr.responseText;
+                            let item = JSON.parse(data);
+
+                            $('#modalTable').empty();
+                            if(item.length > 0){
+
+                                let table = '';
+                                table += '<table class="table table-bordered table-responsive">' +
+                                    '<tr>' +
+                                    '<th class="text-center">ID</th>' +
+                                    '<th class="text-center">Report Name</th>' +
+                                    '<th class="text-center">Status</th>' +
+                                    '<th class="text-center">Criteria String</th>' +
+                                    '<th class="text-center">created Date</th>' +
+                                    '<th class="text-center">Finished Date</th>' +
+                                    '</tr>';
+
+                                let date1;
+                                let year1;
+                                let month1;
+                                let day1;
+                                let hours1;
+                                let minute1;
+                                let secound1;
+                                let convert_date1;
+
+                                let date2;
+                                let year2;
+                                let month2;
+                                let day2;
+                                let hours2;
+                                let minute2;
+                                let secound2;
+                                let convert_date2;
+
+                                for(let i = 0; i != item.length ; i++){
+                                    date1 = new Date(item[i].createdDate);
+                                    year1 = date1.getFullYear();
+                                    month1 = date1.getMonth() + 1;
+                                    day1 = date1.getDate();
+                                    hours1 = date1.getHours();
+                                    minute1 = date1.getMinutes();
+                                    secound1 = date1.getSeconds();
+
+                                    date2 = new Date(item[i].finishDate);
+                                    year2 = date2.getFullYear();
+                                    month2 = date2.getMonth() + 1;
+                                    day2 = date2.getDate();
+                                    hours2 = date2.getHours();
+                                    minute2 = date2.getMinutes();
+                                    secound2 = date2.getSeconds();
+
+                                    if(month1 < 10) month1 = '0' + month1;
+                                    if(day1 < 10) day1 = '0' + day1;
+                                    if(hours1 < 10) hours1 = '0' + hours1;
+                                    if(minute1 < 10) minute1 = '0' + minute1;
+                                    if(secound1 < 10) secound1 = '0' + secound1;
+
+                                    convert_date1 = year1 + '-' + month1 + '-' + day1 + ' ' + hours1 + ':' + minute1 + ':' + secound1;
+
+                                    if(month2   < 10) month2 = '0' + month2;
+                                    if(day2 < 10) day2 = '0' + day2;
+                                    if(hours2 < 10) hours2 = '0' + hours2;
+                                    if(minute2 < 10) minute2 = '0' + minute2;
+                                    if(secound2 < 10) secound2 = '0' + secound2;
+
+                                    convert_date2 = year2 + '-' + month2 + '-' + day2 + ' ' + hours2 + ':' + minute2 + ':' + secound2;
+
+                                    table += '' +
+                                        '<tr>' +
+                                        '<td>' + (i+1) + '</td>' +
+                                        '<td>' + item[i].reportName + '</td>' +
+                                        '<td>' + item[i].status + '</td>' +
+                                        '<td>' + item[i].criteriaString + '</td>' +
+                                        '<td>' + convert_date1 + '</td>' +
+                                        '<td>' + convert_date2 + '</td>' +
+                                        '</tr>';
+                                }
+
+                                table += '</table>';
+                                $('#modalTable').append(table);
+                                $('#qModal').modal('show');
+
+
+                            }else{
+                                $('#modalTable').append('<h3 class="text-center" style="color: orangered;">No Queue for now.</h3>');
+                                $('#qModal').modal('show');
+                            }
+                        }
+                    }
+                });
+
+            });
+
+            $('#button_search_country').click(function () {
+
+                $.ajax({
+                    type: "GET",
+                    url: window.location.origin + "/reportQ/getCustomer?country=" + $('#input_country').val(),
+                    contentType: "application/json; charset=UTF-8",
+                    async: false,
+                    complete : function (xhr) {
+                        if (xhr.statusCode(200)) {
+                            let data = xhr.responseText;
+                            let item = JSON.parse(data);
+
+    //                        console.log(item);
+
+                            if (item.queue !== undefined) {
+
+                                let country = $('#input_country').val() == '' ? '' : $('#input_country').val();
+                                let fileName = country + '.txt';
+    //                            country = country;
+
+                                console.log('Country : ' + country);
+
+                                let json = {
+                                    criteriaString : country,
+                                    reportName: 'test0001.txt',
+                                }
+
+                                $('#content').empty();
+                                $('#content').append('' +
+                                    '<h1 style="color: red; font-weight: bold">Data criteria is too Over !</h1><br/>' +
+                                    '<h2 style="margin-top: 0px;">Do you want to continue ?</h2>' +
+                                    '<div class="col-xs-12">' +
+                                        '<input type="button" value="Yes" id="btn_yes" class="btn btn-success" style="display: inline;"/>' +
+                                        '<div class="col-xs-offset-1" style="display: inline"></div>' +
+                                        '<input type="button" value="No" id="btn_no" class="btn btn-danger" style="display: inline"/>' +
+                                    '</div>'
+                                );
+
+                                $('#btn_no').click(function () {
+                                    $('#content').empty();
+                                });
+
+                                $('#btn_yes').click(function () {
+                                    $('#content').empty();
+                                    $('#content').append('' +
+                                        '<h1>We will send file to your email if data is finished generated</h1>' +
+                                        '<h2>Or link for download if file is too large</h2>');
+
+                                    $.ajax({
+                                        type: "POST",
+                                        url: window.location.origin + "/reportQ/gotoQ",
+                                        data: json,
+                                        headers: {
+                                            Accept: 'application/json'
+                                        },
+                                        async: false
+                                    })
+                                });
+
+
+                            } else if(item.length > 0){
+                                $('#content').empty();
+                                let table = '';
+                                table += '<table class="table table-bordered table-responsive">' +
+                                    '<tr>' +
+                                        '<th class="text-center">ID</th>' +
+                                        '<th class="text-center">First Name</th>' +
+                                        '<th class="text-center">Last Name</th>' +
+                                        '<th class="text-center">City</th>' +
+                                        '<th class="text-center">Country</th>' +
+                                        '<th class="text-center">Phone</th>' +
+                                    '</tr>';
+                                for(let i = 0; i != item.length ; i++){
+                                    table +=
+                                        '<tr>' +
+                                            '<td>' + item[i].id + '</td>' +
+                                            '<td>' + item[i].firstName + '</td>' +
+                                            '<td>' + item[i].lastName + '</td>' +
+                                            '<td>' + item[i].city + '</td>' +
+                                            '<td>' + item[i].country + '</td>' +
+                                            '<td>' + item[i].phone + '</td>' +
+                                        '</tr>';
+                                }
+                                table += '</table>';
+                                $('#content').append(table);
+                            }else{
+                                $('#content').empty();
+                                $('#content').append('' +
+                                    '<h2>No content to views</h2>');
+                            }
+                        }
+                    }
+                });
+            })
+        /*]]>*/
+    </script>
+
+
+</body>
+</html>
