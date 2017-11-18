@@ -148,6 +148,7 @@ public class PrintQController {
                 List<ReportQ> reportQList = reportQRepository.findAll();
                 ReportQList data;
 
+                LOGGER.info("DOING REPORT QUEUES");
                 for(ReportQ reportQ : reportQList){
                     try {
                         List<Customer> customerList = getCustomerByCountry(reportQ.getCriteriaString());
@@ -170,7 +171,20 @@ public class PrintQController {
                         e.printStackTrace();
                     }
                 }
+                LOGGER.info("FINISHED QUEUES");
                 checkProcess = false;
+
+                reportQList = null;
+                data = null;
+
+                size = reportQRepository.findSize();
+
+
+
+                if(size > 0){
+                    checkProcess = true;
+                    generateReport();
+                }
             }else {
                 checkProcess = true;
                 generateReport();
