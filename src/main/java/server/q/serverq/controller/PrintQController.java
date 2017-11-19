@@ -7,9 +7,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -24,6 +22,8 @@ import server.q.serverq.entity.ReportQList;
 import server.q.serverq.repository.CustomerRepository;
 import server.q.serverq.repository.ReportQListRepository;
 import server.q.serverq.repository.ReportQRepository;
+import server.q.serverq.service.HandleReportService;
+import server.q.serverq.service.QueueService;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -31,7 +31,6 @@ import javax.persistence.Query;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,16 +42,19 @@ public class PrintQController {
     private static Logger LOGGER = LoggerFactory.getLogger(PrintQController.class);
     private static boolean checkProcess = false;
     private static String SOURCE_FOLDER = "C:\\Users\\aphisit\\Desktop\\";
-    private static int index = 1;
+    private static int index = 0;
 
     @PersistenceContext
     EntityManager entityManager;
 
     @Autowired
+    private QueueService queueService;
+
+    @Autowired
     private ReportQRepository reportQRepository;
 
     @Autowired
-    private CustomerRepository customerRepository;
+    private HandleReportService handleReportService;
 
     @Autowired
     private ReportQListRepository reportQListRepository;
@@ -113,38 +115,33 @@ public class PrintQController {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type","application/json; charset=utf-8");
 
-        LOGGER.info("DATA SAVE TO DB : {} , {}",criteriaString,reportName);
-        ReportQ reportQ  = new ReportQ();
-        reportQ.setStatus("On process");
-        reportQ.setReportName("test" + (index) + ".xlsx");
-        reportQ.setCriteriaString(criteriaString);
-
-        ReportQList reportQList = new ReportQList();
-        reportQList.setStatus("On process");
-        reportQList.setReportName("test" + (index) + ".xlsx");
-        reportQList.setCriteriaString(criteriaString);
-
-        index++;
-
-        LOGGER.info("reportQ : {}",reportQ);
+//        LOGGER.info("DATA SAVE TO DB : {} , {}",criteriaString,reportName);
+//        ReportQ reportQ  = new ReportQ();
+//        reportQ.setStatus("On process");
+//        reportQ.setReportName("test" + (index) + ".xlsx");
+//        reportQ.setCriteriaString(criteriaString);
+//
+//        ReportQList reportQList = new ReportQList();
+//        reportQList.setStatus("On process");
+//        reportQList.setReportName("test" + (index) + ".xlsx");
+//        reportQList.setCriteriaString(criteriaString);
+//
         try {
-            reportQRepository.save(reportQ);
-            reportQListRepository.save(reportQList);
+
+            queueService.saveQueue("On process","test" + (++index) + ".xlsx",criteriaString);
 
             if(!checkProcess){
                 try {
                     generateReport();
                 } catch (InterruptedException e) {
                     checkProcess = false;
-                    e.printStackTrace();
+                    LOGGER.error("ERR {} ",e.getMessage());
                 }
             }
         }catch (Exception e){
             checkProcess = false;
             LOGGER.error("ERR {} ",e.getMessage());
-            e.printStackTrace();
         }
-
         return new ResponseEntity<String>("OK",headers,HttpStatus.OK);
 
     }
@@ -152,69 +149,69 @@ public class PrintQController {
 
     @Async
     public void generateReport() throws InterruptedException{
+        LOGGER.info("@Async generateReport()");
         Long size = reportQRepository.findSize();
-        LOGGER.info("ReportQ size : {}",size);
         if(size > 0){
             if(!checkProcess){
                 checkProcess = true;
-                List<ReportQ> reportQList = reportQRepository.findAll();
-                ReportQList data;
-
-                LOGGER.info("DOING REPORT QUEUES");
-                for(ReportQ reportQ : reportQList){
-
-                    XSSFWorkbook workbook = new XSSFWorkbook();
-                    XSSFSheet sheet = workbook.createSheet("Data type in Java");
-
-                    List<Customer> customerList = getCustomerByCountry(reportQ.getCriteriaString());
-                    LOGGER.info("reportQ.getCriteriaString() : {} ",reportQ.getCriteriaString());
-
-                    int rowNum = 0;
-                    for(Customer customer : customerList){
-                        Row row = sheet.createRow(rowNum++);
-                        int colNum = 0;
-                        Cell cell = row.createCell(colNum++);
-                        cell.setCellValue(customer.getId());
-                        cell = row.createCell(colNum++);
-                        cell.setCellValue(customer.getFirstName());
-                        cell = row.createCell(colNum++);
-                        cell.setCellValue(customer.getLastName());
-                        cell = row.createCell(colNum++);
-                        cell.setCellValue(customer.getCity());
-                        cell = row.createCell(colNum++);
-                        cell.setCellValue(customer.getCountry());
-                        cell = row.createCell(colNum++);
-                        cell.setCellValue(customer.getPhone());
-                    }
-
-
-                    try {
-
-//                        FileOutputStream fileOutputStream = new FileOutputStream(SOURCE_FOLDER + "\\" + reportQ.getId() + "-" + reportQ.getReportName() + ".xlsx");
-                        FileOutputStream fileOutputStream = new FileOutputStream(reportQ.getId() + "-" + reportQ.getReportName());
-                        workbook.write(fileOutputStream);
-                        workbook.close();
-
-                        data = reportQListRepository.findOne(reportQ.getId());
-                        data.setStatus("Completed");
-                        reportQListRepository.saveAndFlush(data);
-
-                        reportQRepository.delete(reportQ.getId());
-
-                    } catch (FileNotFoundException e) {
-                        LOGGER.error("GET ERROR : {}",e.getMessage());
-                        e.printStackTrace();
-                        checkProcess = false;
-                    } catch (IOException e) {
-                        LOGGER.error("GET ERROR : {}",e.getMessage());
-                        e.printStackTrace();
-                        checkProcess = false;
-                    }
-                }
-                LOGGER.info("FINISHED QUEUES");
+//                List<ReportQ> reportQList = reportQRepository.findAll();
+//                ReportQList data;
+                handleReportService.generateReport();
+//                LOGGER.info("DOING REPORT QUEUES");
+//                for(ReportQ reportQ : reportQList){
+//
+//                    XSSFWorkbook workbook = new XSSFWorkbook();
+//                    XSSFSheet sheet = workbook.createSheet("Data type in Java");
+//
+//                    List<Customer> customerList = getCustomerByCountry(reportQ.getCriteriaString());
+//                    LOGGER.info("reportQ.getCriteriaString() : {} ",reportQ.getCriteriaString());
+//
+//                    int rowNum = 0;
+//                    for(Customer customer : customerList){
+//                        Row row = sheet.createRow(rowNum++);
+//                        int colNum = 0;
+//                        Cell cell = row.createCell(colNum++);
+//                        cell.setCellValue(customer.getId());
+//                        cell = row.createCell(colNum++);
+//                        cell.setCellValue(customer.getFirstName());
+//                        cell = row.createCell(colNum++);
+//                        cell.setCellValue(customer.getLastName());
+//                        cell = row.createCell(colNum++);
+//                        cell.setCellValue(customer.getCity());
+//                        cell = row.createCell(colNum++);
+//                        cell.setCellValue(customer.getCountry());
+//                        cell = row.createCell(colNum++);
+//                        cell.setCellValue(customer.getPhone());
+//                    }
+//
+//
+//                    try {
+//
+////                        FileOutputStream fileOutputStream = new FileOutputStream(SOURCE_FOLDER + "\\" + reportQ.getId() + "-" + reportQ.getReportName() + ".xlsx");
+//                        FileOutputStream fileOutputStream = new FileOutputStream(reportQ.getId() + "-" + reportQ.getReportName());
+//                        workbook.write(fileOutputStream);
+//                        workbook.close();
+//
+//                        data = reportQListRepository.findOne(reportQ.getId());
+//                        data.setStatus("Completed");
+//                        reportQListRepository.saveAndFlush(data);
+//
+//                        reportQRepository.delete(reportQ.getId());
+//
+//                    } catch (FileNotFoundException e) {
+//                        LOGGER.error("GET ERROR : {}",e.getMessage());
+//                        e.printStackTrace();
+//                        checkProcess = false;
+//                    } catch (IOException e) {
+//                        LOGGER.error("GET ERROR : {}",e.getMessage());
+//                        e.printStackTrace();
+//                        checkProcess = false;
+//                    }
+//                }
+//                LOGGER.info("FINISHED QUEUES");
                 checkProcess = false;
                 size = reportQRepository.findSize();
-
+//
                 if(size > 0){
                     generateReport();
                 }else {
@@ -224,10 +221,11 @@ public class PrintQController {
         }
     }
 
-    private List<Customer> getCustomerByCountry(@RequestParam("country") String country){
-        return customerRepository.findByCountryIgnoreCaseContaining(country);
-    }
+//    private List<Customer> getCustomerByCountry(@RequestParam("country") String country){
+//        return customerRepository.findByCountryIgnoreCaseContaining(country);
+//    }
 
+    @SuppressWarnings("Duplicates")
     @GetMapping(value = "/getQueueNow",produces = "text/html;charset=utf-8", headers = "Accept=application/json; charset=utf-8")
     public ResponseEntity<String> getQ(){
 
@@ -243,6 +241,7 @@ public class PrintQController {
         }
     }
 
+    @SuppressWarnings("Duplicates")
     @GetMapping(value = "/viewQueue",produces = "text/html;charset=utf-8", headers = "Accept=application/json; charset=utf-8")
     public ResponseEntity<String> viewQ(){
 
