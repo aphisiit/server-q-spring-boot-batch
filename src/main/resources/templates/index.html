@@ -211,6 +211,7 @@
             $('#btn_viewQueue').click(function () {
                 $('#modalHeader').empty();
                 $('#modalHeader').append('Finish Queue');
+                let originPath = window.location.origin + "/reportQ/downloadFile";
 
 
                 $.ajax({
@@ -233,9 +234,9 @@
                                     '<th class="text-center">Report ID</th>' +
                                     '<th class="text-center">Report Name</th>' +
                                     '<th class="text-center">Status</th>' +
-                                    '<th class="text-center">Criteria String</th>' +
                                     '<th class="text-center">created Date</th>' +
                                     '<th class="text-center">Finished Date</th>' +
+                                    '<th class="text-center">Link Download</th>' +
                                     '</tr>';
 
                                 let date1;
@@ -289,16 +290,22 @@
 
                                     convert_date2 = year2 + '-' + month2 + '-' + day2 + ' ' + hours2 + ':' + minute2 + ':' + secound2;
 
+
+                                    console.log('reportName : '  + item[i].reportName);
+
                                     table += '' +
                                         '<tr>' +
                                         '<td>' + (i+1) + '</td>' +
                                         '<td>' + item[i].id + '</td>' +
                                         '<td>' + item[i].reportName + '</td>' +
                                         '<td>' + item[i].status + '</td>' +
-                                        '<td>' + item[i].criteriaString + '</td>' +
                                         '<td>' + convert_date1 + '</td>' +
                                         '<td>' + convert_date2 + '</td>' +
+                                        '<td><a style="cursor: pointer" onclick="downloadFile(' + item[i].reportName + ')">Download file</a></td>' +
                                         '</tr>';
+
+                                    console.log('reportName : '  + item[i].reportName);
+
                                 }
 
                                 table += '</table>';
@@ -315,6 +322,27 @@
                 });
 
             });
+
+            function downloadFile(fileName) {
+                console.log('fileName : ' + fileName);
+                let data = {
+                    fileName : fileName
+                }
+
+                $.ajax({
+                    type: 'GET',
+                    url: window.location.origin + "/reportQ/download",
+                    contentType: "application/vnd.ms-excel",
+                    async: false,
+                    data : data,
+                    complete: function (xhr) {
+                        if(xhr.status == 200){
+                            console.log('download successfully');
+                        }
+                    }
+                });
+                
+            }
 
             $('#button_search_country').click(function () {
 

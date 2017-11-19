@@ -27,6 +27,7 @@ public class EmailServiceImpl implements EmailService{
     public void sendMessage(String to, String subject, String text) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("admin@mail.com");
             message.setTo(to);
             message.setSubject(subject);
             message.setText(text);
@@ -46,16 +47,26 @@ public class EmailServiceImpl implements EmailService{
 
     @Override
     public void sendMessageWithAttachment(String to, String subject, String text, String pathToAttachment) {
+
+        String fileName = pathToAttachment.substring(pathToAttachment.lastIndexOf("\\") + 1);
+
+        LOGGER.info("sendMessageWithAttachment - to : {}",to);
+        LOGGER.info("sendMessageWithAttachment - subject : {}",subject);
+        LOGGER.info("sendMessageWithAttachment - text : {}",text);
+        LOGGER.info("sendMessageWithAttachment - pathToAttachment : {}",pathToAttachment);
+        LOGGER.info("sendMessageWithAttachment - fileName : {}",fileName);
+
         try{
             MimeMessage message = emailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message);
+            MimeMessageHelper helper = new MimeMessageHelper(message,true);
 
+            message.setFrom("admin@mail.com");
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(text);
 
             FileSystemResource file = new FileSystemResource(new File(pathToAttachment));
-            helper.addAttachment("Invoive",file);
+            helper.addAttachment(fileName,file);
 
             emailSender.send(message);
 
