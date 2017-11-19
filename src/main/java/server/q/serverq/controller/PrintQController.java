@@ -1,6 +1,10 @@
 package server.q.serverq.controller;
 
 import flexjson.JSONSerializer;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -112,50 +116,83 @@ public class PrintQController {
         LOGGER.info("DATA SAVE TO DB : {} , {}",criteriaString,reportName);
         ReportQ reportQ  = new ReportQ();
         reportQ.setStatus("On process");
-        reportQ.setReportName(reportName);
+        reportQ.setReportName("test" + (index) + ".xlsx");
         reportQ.setCriteriaString(criteriaString);
 
         ReportQList reportQList = new ReportQList();
         reportQList.setStatus("On process");
-        reportQList.setReportName(reportName);
+        reportQList.setReportName("test" + (index) + ".xlsx");
         reportQList.setCriteriaString(criteriaString);
+
+        index++;
 
         LOGGER.info("reportQ : {}",reportQ);
         try {
             reportQRepository.save(reportQ);
             reportQListRepository.save(reportQList);
+
+            if(!checkProcess){
+                try {
+                    generateReport();
+                } catch (InterruptedException e) {
+                    checkProcess = false;
+                    e.printStackTrace();
+                }
+            }
         }catch (Exception e){
+            checkProcess = false;
             LOGGER.error("ERR {} ",e.getMessage());
             e.printStackTrace();
         }
 
-        try {
-            generateReport();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         return new ResponseEntity<String>("OK",headers,HttpStatus.OK);
 
     }
 
 
+    @Async
     public void generateReport() throws InterruptedException{
-//        Thread.sleep(10000);
         Long size = reportQRepository.findSize();
         LOGGER.info("ReportQ size : {}",size);
         if(size > 0){
             if(!checkProcess){
+                checkProcess = true;
                 List<ReportQ> reportQList = reportQRepository.findAll();
                 ReportQList data;
 
                 LOGGER.info("DOING REPORT QUEUES");
                 for(ReportQ reportQ : reportQList){
+
+                    XSSFWorkbook workbook = new XSSFWorkbook();
+                    XSSFSheet sheet = workbook.createSheet("Data type in Java");
+
+                    List<Customer> customerList = getCustomerByCountry(reportQ.getCriteriaString());
+                    LOGGER.info("reportQ.getCriteriaString() : {} ",reportQ.getCriteriaString());
+
+                    int rowNum = 0;
+                    for(Customer customer : customerList){
+                        Row row = sheet.createRow(rowNum++);
+                        int colNum = 0;
+                        Cell cell = row.createCell(colNum++);
+                        cell.setCellValue(customer.getId());
+                        cell = row.createCell(colNum++);
+                        cell.setCellValue(customer.getFirstName());
+                        cell = row.createCell(colNum++);
+                        cell.setCellValue(customer.getLastName());
+                        cell = row.createCell(colNum++);
+                        cell.setCellValue(customer.getCity());
+                        cell = row.createCell(colNum++);
+                        cell.setCellValue(customer.getCountry());
+                        cell = row.createCell(colNum++);
+                        cell.setCellValue(customer.getPhone());
+                    }
+
+
                     try {
-                        List<Customer> customerList = getCustomerByCountry(reportQ.getCriteriaString());
-                        LOGGER.info("reportQ.getCriteriaString() : {} ",reportQ.getCriteriaString());
-                        FileOutputStream fileOutputStream = new FileOutputStream(SOURCE_FOLDER + "/" + (index++) + ".json");
-                        fileOutputStream.write(new JSONSerializer().prettyPrint(true).serialize(customerList).getBytes());
-                        fileOutputStream.close();
+
+                        FileOutputStream fileOutputStream = new FileOutputStream(SOURCE_FOLDER + "\\" + reportQ.getId() + "-" + reportQ.getReportName() + ".xlsx");
+                        workbook.write(fileOutputStream);
+                        workbook.close();
 
                         data = reportQListRepository.findOne(reportQ.getId());
                         data.setStatus("Completed");
@@ -166,28 +203,22 @@ public class PrintQController {
                     } catch (FileNotFoundException e) {
                         LOGGER.error("GET ERROR : {}",e.getMessage());
                         e.printStackTrace();
+                        checkProcess = false;
                     } catch (IOException e) {
                         LOGGER.error("GET ERROR : {}",e.getMessage());
                         e.printStackTrace();
+                        checkProcess = false;
                     }
                 }
                 LOGGER.info("FINISHED QUEUES");
                 checkProcess = false;
-
-                reportQList = null;
-                data = null;
-
                 size = reportQRepository.findSize();
 
-
-
                 if(size > 0){
-                    checkProcess = true;
                     generateReport();
+                }else {
+                    checkProcess = false;
                 }
-            }else {
-                checkProcess = true;
-                generateReport();
             }
         }
     }
