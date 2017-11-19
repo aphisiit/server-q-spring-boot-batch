@@ -15,6 +15,7 @@ import server.q.serverq.entity.ReportQList;
 import server.q.serverq.repository.CustomerRepository;
 import server.q.serverq.repository.ReportQListRepository;
 import server.q.serverq.repository.ReportQRepository;
+import server.q.serverq.service.EmailService;
 import server.q.serverq.service.HandleReportService;
 
 import java.io.FileNotFoundException;
@@ -36,6 +37,9 @@ public class HandleReportServiceImpl implements HandleReportService {
 
     @Autowired
     private CustomerRepository customerRepository;
+
+    @Autowired
+    private EmailService emailService;
 
 
     @Override
@@ -76,14 +80,20 @@ public class HandleReportServiceImpl implements HandleReportService {
 
             try {
 
-                FileOutputStream fileOutputStream = new FileOutputStream(SOURCE_FOLDER + "\\" + reportQ.getId() + "-" + reportQ.getReportName() + ".xlsx");
-//                        FileOutputStream fileOutputStream = new FileOutputStream(reportQ.getId() + "-" + reportQ.getReportName());
+//                FileOutputStream fileOutputStream = new FileOutputStream(SOURCE_FOLDER + reportQ.getId() + "-" + reportQ.getReportName());
+                FileOutputStream fileOutputStream = new FileOutputStream(reportQ.getId() + "-" + reportQ.getReportName());
                 workbook.write(fileOutputStream);
                 workbook.close();
 
                 data = reportQListRepository.findOne(reportQ.getId());
+                data.setReportName(reportQ.getId() + "-" + reportQ.getReportName());
                 data.setStatus("Completed");
                 reportQListRepository.saveAndFlush(data);
+
+                emailService.sendMessageWithAttachment("aphisiit086757@hotmail.com",
+                        reportQ.getId() + "-" + reportQ.getReportName(),
+                        "this is file report " + reportQ.getId() + "-" + reportQ.getReportName(),
+                        reportQ.getId() + "-" + reportQ.getReportName());
 
                 reportQRepository.delete(reportQ.getId());
 

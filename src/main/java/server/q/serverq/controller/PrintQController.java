@@ -8,6 +8,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -17,9 +19,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import server.q.serverq.entity.Customer;
-import server.q.serverq.entity.ReportQ;
-import server.q.serverq.entity.ReportQList;
-import server.q.serverq.repository.CustomerRepository;
 import server.q.serverq.repository.ReportQListRepository;
 import server.q.serverq.repository.ReportQRepository;
 import server.q.serverq.service.HandleReportService;
@@ -28,9 +27,13 @@ import server.q.serverq.service.QueueService;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -258,4 +261,23 @@ public class PrintQController {
     }
 
 
+    @GetMapping("/download")
+    @ResponseBody
+    public ResponseEntity<Resource> download(
+            @PathVariable("file_name") String param,
+            HttpServletResponse response) throws IOException{
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("content-type","application/vnd.ms-excel");
+
+        File file = new File(param);
+        Path path = Paths.get(file.getAbsolutePath());
+        ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(path));
+
+        return  ResponseEntity.ok()
+                .headers(new HttpHeaders())
+                .contentLength(file.length())
+                .body(resource);
+
+    }
 }
